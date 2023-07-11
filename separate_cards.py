@@ -4,22 +4,16 @@ first pages. It will do this using clustering techniques.
 
 Written by Cody Sloan
 """
-# for loading/processing the images  
-from tensorflow.keras.preprocessing.image import load_img
-from tensorflow.keras.applications.vgg16 import preprocess_input
-
-# for clustering the images
-from tensorflow.keras.applications.resnet50 import ResNet50
-from tensorflow.keras.models import Model
-from sklearn.cluster import Birch
-
-# for everything else 
 import os
+import shutil
 import numpy as np
 import pandas as pd
 from pdf2image import convert_from_path
 from PIL import Image
-import shutil
+from tensorflow.keras.applications.vgg16 import preprocess_input
+from tensorflow.keras.applications.resnet50 import ResNet50
+from tensorflow.keras.models import Model
+from sklearn.cluster import Birch
 
 
 def load_pdf_filenames(pdf_dir):
@@ -263,7 +257,7 @@ def main():
     print("Finished")
     
     # Load the model, removing the fully connected layers so it can be used
-    # feature extraction.
+    # for feature extraction.
     print("Loading ResNet50 Model ... ", end='')
     model = ResNet50()
     model = Model(inputs = model.inputs, outputs = model.layers[-2].output)
@@ -289,7 +283,8 @@ def main():
     print("Clustering Files ... ", end='')
     # Cluster and separate the non-training data
     filenames = filenames[split:]
-    separate_dataset(filenames, save_dir, model, path_to_poppler, birch, batch_size=500)
+    separate_dataset(filenames, save_dir, model, path_to_poppler, birch, \
+                     batch_size=500)
     print("Finished")
     print("Separation Completed")
     return
