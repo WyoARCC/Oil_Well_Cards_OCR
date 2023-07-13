@@ -40,7 +40,7 @@ def convert_pdfs_to_img_dict(filenames, path_to_poppler):
 
 
 def extract_vertical_cards(filenames, poppler_path, \
-                           batch_size=5000):
+                           batch_size=2000):
     """Takes a list of PDF file paths and finds whether or not the first page
     of each PDF is taller than it is wide. If it is, then that path is added
     to a list, which is returned. The PDFs are loaded in batchs of size
@@ -100,7 +100,7 @@ def main():
                         help="Path to directory containing PDF files")
     parser.add_argument("-o", "--output", required=True,
                         help="Path to directory that will be outputted to")
-    parser.add_argument("--bs", default=5000, 
+    parser.add_argument("--bs", default=2000, 
                         help="Batch size for converting pdfs to images")
     args = vars(parser.parse_args())
     # Load PDF file names

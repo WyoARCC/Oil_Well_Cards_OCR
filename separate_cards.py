@@ -6,8 +6,10 @@ Written by Cody Sloan
 """
 import os
 import shutil
+import argparse
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from pdf2image import convert_from_path
 from PIL import Image
 from tensorflow.keras.applications.vgg16 import preprocess_input
@@ -17,12 +19,10 @@ from sklearn.cluster import Birch
 
 
 def load_pdf_filenames(pdf_dir):
-    """Takes a list ofmodel_vgg16mes and a path to a directory with PDFs, then
-    adds all of the paths of the PDF files in that directory to the 
-    filenames list.
+    """Takes a path to a directory with PDFs, then adds all of the paths of
+    the PDF files in that directory to the filenames list, which is returned.
     
     Parameters:
-        filenames - List of PDF file paths as strings, initially empty.
         pdf_dir - String containing file system location of PDF files.
     Returns:
         filenames - Updated list of PDF file paths.
@@ -217,8 +217,8 @@ def save_cluster(clusters, save_dir):
 
 
 def separate_dataset(filenames, save_dir, model, path_to_poppler, \
-                     algorithm, batch_size=1000):
-    """Seperates the non-training data into their clusters.
+                     algorithm, batch_size=2000):
+    """Separates the non-training data into their clusters in batches.
     
     Parameters:
         filenames - The names of the files that will be separated.
@@ -246,27 +246,33 @@ def separate_dataset(filenames, save_dir, model, path_to_poppler, \
     return
                 
 def main():
+    # Define script arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input", required=True,
+                        help="Path to directory containing PDF files")
+    parser.add_argument("-o", "--output", required=True,
+                        help="Path to directory that will be outputted to")
+    parser.add_argument("--bs", default=2000, 
+                        help="Batch size for converting pdfs to images")
+    parser.add_argument("--ts", default=500,
+                        help="Size of training dataset for cluster algorithm")
+    parser.add_argument("-n", "--num_clusters", default=4, 
+                        help="Desired number of clusters to output")
+    args = vars(parser.parse_args())
     # Set the seed for randomizing data
     np.random.seed(123)
     
     # Load the filenames list and shuffle it randomly
-    print("Loading Filenames ... ", end='')
-    pdf_dir = r'/project/arcc-students/enhanced_oil_recovery_cards/'
-    filenames = load_pdf_filenames(pdf_dir)
+    filenames = load_pdf_filenames(arg["input"])
     np.random.shuffle(filenames)
-    print("Finished")
     
     # Load the model, removing the fully connected layers so it can be used
     # for feature extraction.
-    print("Loading ResNet50 Model ... ", end='')
     model = ResNet50()
     model = Model(inputs = model.inputs, outputs = model.layers[-2].output)
-    print("Finished")
     
-    print("Training Clustering Algorithm ... ", end='')
     # Define the training set
-    split = 500
-    train = filenames[:split]
+    train = filenames[:args["ts"]]
     # Convert PDFs in training set to images
     path_to_poppler = r'/project/arcc-students/csloan5/environments/GPU_env/bin/'
     images = convert_pdfs_to_imgs(train, path_to_poppler)
@@ -274,19 +280,15 @@ def main():
     features = extract_features(images, model)
     # Generate clusters from training data, and also train the clustering
     # algorithm
-    clusters, birch = birch_train(train, features, num_clusters=4)
+    clusters, birch = birch_train(train, features, num_clusters=args["num_clusters"])
     # Save the training data clusters
     save_dir = r'/project/arcc-students/csloan5/OilWellCards_project/sorted_cards/'
-    save_cluster(clusters, save_dir)
-    print("Finished")
+    save_cluster(clusters, args["output"])
     
-    print("Clustering Files ... ", end='')
     # Cluster and separate the non-training data
-    filenames = filenames[split:]
-    separate_dataset(filenames, save_dir, model, path_to_poppler, birch, \
-                     batch_size=500)
-    print("Finished")
-    print("Separation Completed")
+    filenames = filenames[args["ts"]:]
+    separate_dataset(filenames, args["output"], model, path_to_poppler, birch, \
+                     batch_size=args["bs"])
     return
 
 
