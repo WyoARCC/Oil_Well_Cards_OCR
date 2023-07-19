@@ -71,6 +71,8 @@ def move_vertical_cards(filenames, path_to_poppler, save_dir, batch_size=1000):
         path_to_poppler - String containing the location of your poppler
             installation. This is usually the /bin/ directory in your 
             conda environment.
+        save_dir - String containing path of directory that the PDF files will
+            be moved to.
         batch_size - The number of images that will be loaded into memory each
             time convert_pdfs_to_img_dict is ran.
     Returns:
