@@ -60,7 +60,7 @@ def convert_pdfs_to_img_dict(filenames, path_to_poppler):
     return img_dict
 
 
-def move_vertical_cards(filenames, poppler_path, save_dir, batch_size=1000):
+def move_vertical_cards(filenames, path_to_poppler, save_dir, batch_size=1000):
     """Takes a list of PDF file paths and finds whether or not the first page
     of each PDF is taller than it is wide. If it is, then that path is added
     to a list, which is returned. The PDFs are loaded in batchs of size
@@ -68,7 +68,7 @@ def move_vertical_cards(filenames, poppler_path, save_dir, batch_size=1000):
     
     Parameters:
         filenames - List of paths to PDF files.
-        poppler_path - String containing the location of your poppler
+        path_to_poppler - String containing the location of your poppler
             installation. This is usually the /bin/ directory in your 
             conda environment.
         batch_size - The number of images that will be loaded into memory each
@@ -82,7 +82,7 @@ def move_vertical_cards(filenames, poppler_path, save_dir, batch_size=1000):
         # Grab the batch
         batch = filenames[i:i+batch_size]
         # Convert the batch into a filename/image directory
-        image_dict = convert_pdfs_to_img_dict(batch, poppler_path)
+        image_dict = convert_pdfs_to_img_dict(batch, path_to_poppler)
         # Loop over the keys and values of the dictionary
         for path, img in image_dict.items():
             # Grab the image's size and test if it is taller than it is wide
