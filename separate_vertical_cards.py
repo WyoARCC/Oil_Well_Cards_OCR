@@ -4,10 +4,31 @@ have a vertical first page and moves it to the output directory
 Written by Cody Sloan
 """
 import argparse
+import os
 import shutil
 from PIL import Image
-from separate_cards import load_pdf_filenames
 from pdf2image import convert_from_path
+
+
+def load_pdf_filenames(pdf_dir):
+    """Takes a path to a directory with PDFs, then adds all of the paths of
+    the PDF files in that directory to the filenames list, which is returned.
+    
+    Parameters:
+        pdf_dir - String containing file system location of PDF files.
+    Returns:
+        filenames - Updated list of PDF file paths.
+    """
+    filenames = []
+    # Scan recursively over all pdf files in a directory
+    for folder, subfolders, files in os.walk(pdf_dir):
+        for file in files:
+            if file.endswith('.pdf'):
+                #Add all the .pdf filenames to a list
+                filename = os.path.join(folder, file)
+                filenames.append(filename)
+                
+    return filenames
 
 
 def convert_pdfs_to_img_dict(filenames, path_to_poppler):
@@ -39,8 +60,7 @@ def convert_pdfs_to_img_dict(filenames, path_to_poppler):
     return img_dict
 
 
-def extract_vertical_cards(filenames, poppler_path, \
-                           batch_size=2000):
+def move_vertical_cards(filenames, poppler_path, save_dir, batch_size=1000):
     """Takes a list of PDF file paths and finds whether or not the first page
     of each PDF is taller than it is wide. If it is, then that path is added
     to a list, which is returned. The PDFs are loaded in batchs of size
@@ -54,11 +74,9 @@ def extract_vertical_cards(filenames, poppler_path, \
         batch_size - The number of images that will be loaded into memory each
             time convert_pdfs_to_img_dict is ran.
     Returns:
-        vertical - List of PDF files where the first page is taller than it is
-            wide.
+        count - Number of files that were moved.
     """
-    
-    vertical = []
+    count = 0
     # Loop over the filenames list in <batch_size> chunks
     for i in range(0, len(filenames), batch_size):
         # Grab the batch
@@ -70,25 +88,11 @@ def extract_vertical_cards(filenames, poppler_path, \
             # Grab the image's size and test if it is taller than it is wide
             w, h = img.size
             if h > w:
+                count = count + 1
                 # If so, add it to the list
-                vertical.append(path)
-    return vertical
-
-
-def copy_files(card_paths, save_dir):
-    """Takes a list of filenames and copies those files to a new directory.
-    
-    Parameters:
-        card_paths - List of source filenames.
-        save_dir - Location of output directory
-    """
-    
-    # Loop over all of the filenames
-    for file in card_paths:
-        # Copy the files to the output directory
-        full = os.path.join(save_dir, os.path.basename(file))
-        shutil.move(file, full)
-    return
+                full = os.path.join(save_dir, os.path.basename(path))
+                shutil.move(path, full)
+    return count
 
 
 def main():
@@ -100,16 +104,14 @@ def main():
                         help="Path to directory containing PDF files")
     parser.add_argument("-o", "--output", required=True,
                         help="Path to directory that will be outputted to")
-    parser.add_argument("--bs", default=2000, 
+    parser.add_argument("--bs", type=int, default=1000,
                         help="Batch size for converting pdfs to images")
     args = vars(parser.parse_args())
     # Load PDF file names
     filenames = load_pdf_filenames(args["input"])
-    # Extract the vertical cards from those PDFS
-    vert_files = extract_vertical_cards(filenames, path_to_poppler, \
-                                        args["bs"])
-    # Move the files to their new location
-    copy_files(vert_files, args["output"])
+    # Extract the PDFs that have vertical cards and move them to the new dir
+    n_moved_files = move_vertical_cards(filenames, path_to_poppler, args["output"], args["bs"])
+    print("Done.", n_moved_files, "files were moved to", args["output"])
     return
 
 
