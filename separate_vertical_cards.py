@@ -17,14 +17,14 @@ def load_pdf_filenames(pdf_dir):
     Parameters:
         pdf_dir - String containing file system location of PDF files.
     Returns:
-        filenames - Updated list of PDF file paths.
+        filenames - List of PDF file paths as strings.
     """
     filenames = []
-    # Scan recursively over all pdf files in a directory
+    # Scan recursively over all PDF files in a directory
     for folder, subfolders, files in os.walk(pdf_dir):
         for file in files:
             if file.endswith('.pdf'):
-                #Add all the .pdf filenames to a list
+                # Add all the .pdf filenames to a list
                 filename = os.path.join(folder, file)
                 filenames.append(filename)
                 
@@ -32,9 +32,9 @@ def load_pdf_filenames(pdf_dir):
 
 
 def convert_pdfs_to_img_dict(filenames, path_to_poppler):
-    """Takes a list of PDF file paths, and converts the first page of 
+    """Takes a list of PDF file paths, converts the first page of 
     each PDF to an image, and adds that image to a dictionary with the
-    pdf's filename as the key.
+    PDF's filename as the key.
     
     Parameters:
         filenames - List of PDF file paths as strings.
@@ -46,15 +46,15 @@ def convert_pdfs_to_img_dict(filenames, path_to_poppler):
             PDF.
     """
     img_dict = {}
-    # Loop over all pdfs and convert the first page to an image
+    # Loop over all PDFs and convert the first page to an image
     for filename in filenames:
-        # converts only the pdf files and adds them to the list
+        # converts only the PDF files and adds them to the list
         img = convert_from_path(filename, \
                                 first_page=1, \
                                 last_page=1, \
                                 poppler_path=path_to_poppler
                                )
-        # Add that image to the dictionary with the pdf filename as its key
+        # Add that image to the dictionary with the PDF filename as its key
         img_dict[filename] = img[0]
         
     return img_dict
@@ -107,7 +107,7 @@ def main():
     parser.add_argument("-o", "--output", required=True,
                         help="Path to directory that will be outputted to")
     parser.add_argument("--bs", type=int, default=1000,
-                        help="Batch size for converting pdfs to images")
+                        help="Batch size for converting PDFs to images")
     args = vars(parser.parse_args())
     # Load PDF file names
     filenames = load_pdf_filenames(args["input"])
