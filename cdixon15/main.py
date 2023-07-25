@@ -1,3 +1,11 @@
-import ocr.cleanAndConvert
+import ocr
+import layoutDetection
 
-print("Hello World")
+def main():
+    #Do Something
+
+
+    return
+
+if __name__ =='__main__':
+    main()

@@ -16,6 +16,9 @@ from pdf2image import convert_from_path
 import os
 import sys
 
+import layoutDetection.lineDetection
+
+
 
 
 
@@ -148,6 +151,7 @@ def convertAllOilCards(destination):
             ocrOnDirectory(os.path.join('/project/arcc-students/enhanced_oil_recovery_cards',folder,folder2),os.path.join(destination,folder))
 
 #TODO
+#DO NOT USE
 #takes an image and section and performs OCR on only the specified section
 def ocrOnSection(image,section):    
 
@@ -161,25 +165,56 @@ def ocrOnSection(image,section):
     img_rgb = Image.frombytes('RGB', img_cv.shape[:2], img_cv, 'raw', 'BGR', 0, 0)
     print(pytesseract.image_to_string(img_rgb))
 
+#takes an image of type 1, outputs text file using customized OCR process from layoutDetection
+def typeOneOCR(image):   
+    
+    linesV=layoutDetection.lineDetection.findLines(image,-.78,.78)
+    linesV=layoutDetection.lineDetection.getBestTwoLines(linesV)
+    linesH=layoutDetection.lineDetection.findLines(image,.78, 2.35)
+    linesH=layoutDetection.lineDetection.getBestLine(linesH)    
+
+    topImage,leftImage,centerImage,rightImage=layoutDetection.lineDetection.splitImage(image,linesH,linesV)
+
+    textTop=ocr_core(topImage, 3)
+    textLeft=ocr_core(leftImage, 3)
+    textCenter=ocr_core(centerImage, 3)
+    textRight=ocr_core(rightImage, 3)
+
+    #the section labels may need to be replaced to make sure they are unique from raw OCR output and easy to parse
+    textFull="--SECTIONLABELTOP: "+os.linesep+textTop+os.linesep+ \
+            "--SECTIONLABELLEFT: "+os.linesep+textLeft+os.linesep+ \
+            "--SECTIONLABELCENTER: "+os.linesep+textCenter+os.linesep+ \
+            "--SECTIONLABELRIGHT: "+os.linesep+textRight
+
+    
+    return textFull
+
 def main():
     #do all the main stuff
 
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--input", required=True,
     	help="path to input directory") 
-    ap.add_argument("-c", "--cleaned", required=True,
+    ap.add_argument("-c", "--cleaned", required=False,
         help="path to directory of cleaned images") 
     ap.add_argument("-o", "--output", required=True,
         help="path to directory of text files") 
     args = vars(ap.parse_args())
-
     
     #testAllPSM('/project/arcc-students/cdixon15/oilCardProject/typedOCR/cleaned/temp/310-0000.pdf.jpg','/project/arcc-students/cdixon15/oilCardProject/typedOCR/PSMTest')
-    
-
     #cleanupOutput=cleanup(args['input'],args['cleaned'])
     #ocrOnDirectory(cleanupOutput,args['output'])
-    convertAllOilCards(args['output'])
+    #convertAllOilCards(args['output'])
+    #image=layoutDetection.lineDetection.firstPageToImage(args['input'])
+    #text=typeOneOCR(image)
+
+    #output_writer = open(args['output'],"w")
+    #output_writer.write(text)
+
+    ocrOnDirectory(args['input'],args['output'])
+
+    return
+
 
 
     

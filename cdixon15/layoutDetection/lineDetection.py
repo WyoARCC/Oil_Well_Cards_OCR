@@ -14,8 +14,8 @@ import argparse
 #takes an image and outputs the detected lines
 #the theta variables specify the angle of lines to be detected and are set to detect all lines by default
 #I use .78 and 2.35 to fine horizontal lines
-#0 and.78 for verticle
-def findLines(image,min_theta = 0,max_theta = numpy.pi):
+#-.78 and.78 for verticle
+def findLines(image,min_theta = 0,max_theta = numpy.pi,threshold = 242):
     grayscaled = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     thresh = cv2.threshold(grayscaled,165,255,cv2.THRESH_BINARY)[1]
     kernel = numpy.ones((15,1), numpy.uint8)
@@ -128,7 +128,10 @@ def main():
     #findAndDrawLinesRecursive(args['input'],args['output'])
     image=firstPageToImage(args['input'])
     #finding vertical lines
-    lines=findLines(image)
+    linesV=findLines(image,-.78,.78)
+    image=drawLines(image,linesV)
+    cv2.imwrite(args['output'], image)
+    """
     linesV=findLines(image,-.78,.78)
     linesV=getBestTwoLines(linesV)
     linesH=findLines(image,.78, 2.35)
@@ -139,7 +142,7 @@ def main():
     cv2.imwrite(os.path.join(args['output'],"leftImage.jpg"), leftImage)
     cv2.imwrite(os.path.join(args['output'],"centerImage.jpg"), centerImage)
     cv2.imwrite(os.path.join(args['output'],"rightImage.jpg"), rightImage)
-
+    """
     return
 
 if __name__ =='__main__':
