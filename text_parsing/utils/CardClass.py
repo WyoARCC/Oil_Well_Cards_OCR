@@ -3,7 +3,7 @@
 class Card:
     def __init__(self):
         self.documentID=""
-        self.typeID=""
+        self.pageNum=""
         # self.status = "" # Do we need this here?
         self.api = ""
         self.well_name = ""
@@ -88,12 +88,19 @@ class Card:
         self.DSTS_Cores]
 
     def setLocation(self):
-        if self.township:
-            self.location += self.township
-        if self.range:
-            self.location += ' ' + self.range
+        # Make sure to separate the township, range, and section from the pool
+        # and county
+        if len(self.location) > 0:
+            self.location = ', ' + self.location
+        # Set township, range and section
         if self.section:
-            self.location += ' sec. ' + self.section
+            self.location = ' sec. ' + self.section + self.location
+        if self.range:
+            self.location = ' ' + self.range + self.location
+        if self.township:
+            self.location = self.township + self.location
+        
+        
         return
 
     def setLocationFootage(self):
