@@ -16,7 +16,7 @@ from pdf2image import convert_from_path
 import os
 import sys
 
-import layoutDetection.lineDetection
+
 
 
 
@@ -32,11 +32,79 @@ def ocr_core(file_name_here,psm):
         text='failed'
     return text
 
+def ocr_core_tsv(image):
+    try:
+        text=pytesseract.image_to_data(image)
+    except:
+        text='--FAILED--'
+    return text
+    
+
 #ap = argparse.ArgumentParser()
 #ap.add_argument("-i", "--image", required=True,
 #	help="path to image")g 
 #args = vars(ap.parse_args())
 
+#cleans  single image and outputs the cleaned image
+def cleanupImage(image):
+    
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # threshold the image using Otsu's thresholding method
+    thresh = cv2.threshold(gray, 0, 255,
+        cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+
+    # apply a distance transform which calculates the distance to the
+    # closest zero pixel for each pixel in the input image
+    dist = cv2.distanceTransform(thresh, cv2.DIST_L2, 5)
+
+    # normalize the distance transform such that the distances lie in
+    # the range [0, 1] and then convert the distance transform back to
+    # an unsigned 8-bit integer in the range [0, 255]
+    dist = cv2.normalize(dist, dist, 0, 1.0, cv2.NORM_MINMAX)
+    dist = (dist * 255).astype("uint8")
+
+
+    # threshold the distance transform using Otsu's method
+    dist = cv2.threshold(dist, 0, 255,
+        cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+    #cv2.imwrite("/project/arcc-students/cdixon15/radiocarbon_project/distotsu.jpg", dist)
+
+    # apply an "opening" morphological operation to disconnect components
+    # in the image
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2,2))
+    opening = cv2.morphologyEx(dist, cv2.MORPH_OPEN, kernel)
+    #cv2.imwrite("/project/arcc-students/cdixon15/radiocarbon_project/opening.jpg", opening)
+
+    # find contours in the opening image, then initialize the list of
+    # contours which belong to actual characters that we will be OCR'ing
+    cnts = cv2.findContours(opening.copy(), cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    chars = []
+    # loop over the contours
+    for c in cnts:
+        # compute the bounding box of the contour
+        (x, y, w, h) = cv2.boundingRect(c)
+        # check if contour is at least 35px wide and 100px tall, and if
+        # so, consider the contour a digit
+        if w >= 5 and h >= 5:
+            chars.append(c)
+
+    # compute the convex hull of the characters
+    chars = np.vstack([chars[i] for i in range(0, len(chars))])
+    hull = cv2.convexHull(chars)
+    # allocate memory for the convex hull mask, draw the convex hull on
+    # the image, and then enlarge it via a dilation
+    mask = np.zeros(image.shape[:2], dtype="uint8")
+    cv2.drawContours(mask, [hull], -1, 255, -1)
+    mask = cv2.dilate(mask, None, iterations=2)
+    #cv2.imwrite("/project/arcc-students/cdixon15/radiocarbon_project/mask.jpg", mask)
+    # take the bitwise of the opening image and the mask to reveal *just*
+    # the characters in the image
+    final = cv2.bitwise_and(opening, opening, mask=mask)
+    #filenumber=file.split(".")[0]
+    
+    return final
 
 #this function operates on a directory to clean the images in that directory and save them in outputPath. It returns the directory containing coverted images
 def cleanup(directory,outputPath):
@@ -135,6 +203,33 @@ def ocrOnDirectory(directory,outputPath):
         output_writer.write(text)
     print("These files failed OCR: ",failedfiles)
 
+#With cleaning
+def tsv_ocrOnDirectory(directory,outputPath):
+    print('ran with outputPath ',outputPath)
+    for file in os.listdir(directory):
+        filePath=os.path.join(directory,file)
+        if os.path.isdir(filePath):
+            newInput=os.path.join(directory,file)
+            newOutput=os.path.join(outputPath,file)
+            os.makedirs(newOutput, exist_ok=True)
+            print('directory, ',newOutput, 'created')
+            print('new inputs are, ', newInput," ",newOutput)
+            tsv_ocrOnDirectory(newInput,newOutput)
+        if os.path.isfile(filePath):
+            print('file is ', filePath)
+            try:
+                image=cleanupImage(np.array(convert_from_path(filePath)[0]))
+                text=ocr_core_tsv(image)
+                ##print(text)
+                ##print('new')
+                output_writer = open(os.path.join(outputPath,str(file)+'.tsv'), "w")
+                output_writer.write(text)
+                print(file, 'OCR written to ',os.path.join(outputPath,str(file)+'.tsv'))
+            except:
+                print(filePath, ' failed')
+
+    return 
+
 #takes a path to an image and outputs an example of each PSM setting to the destination folder
 def testAllPSM(pathToImage,destination):
     for i in range(1,14):
@@ -165,15 +260,16 @@ def ocrOnSection(image,section):
     img_rgb = Image.frombytes('RGB', img_cv.shape[:2], img_cv, 'raw', 'BGR', 0, 0)
     print(pytesseract.image_to_string(img_rgb))
 
+'''
 #takes an image of type 1, outputs text file using customized OCR process from layoutDetection
 def typeOneOCR(image):   
     
-    linesV=layoutDetection.lineDetection.findLines(image,-.78,.78)
-    linesV=layoutDetection.lineDetection.getBestTwoLines(linesV)
-    linesH=layoutDetection.lineDetection.findLines(image,.78, 2.35)
-    linesH=layoutDetection.lineDetection.getBestLine(linesH)    
+    linesV=lineDetection.findLines(image,-.78,.78)
+    linesV=lineDetection.getBestTwoLines(linesV)
+    linesH=lineDetection.findLines(image,.78, 2.35)
+    linesH=lineDetection.getBestLine(linesH)    
 
-    topImage,leftImage,centerImage,rightImage=layoutDetection.lineDetection.splitImage(image,linesH,linesV)
+    topImage,leftImage,centerImage,rightImage=lineDetection.splitImage(image,linesH,linesV)
 
     textTop=ocr_core(topImage, 3)
     textLeft=ocr_core(leftImage, 3)
@@ -188,8 +284,9 @@ def typeOneOCR(image):
 
     
     return textFull
-
+'''
 def main():
+    print('start')
     #do all the main stuff
 
     ap = argparse.ArgumentParser()
@@ -211,7 +308,11 @@ def main():
     #output_writer = open(args['output'],"w")
     #output_writer.write(text)
 
-    ocrOnDirectory(args['input'],args['output'])
+    #ocrOnDirectory(args['input'],args['output'])
+    #get_tesseract_version()
+    print('cleaning and converting')
+    #tsv_ocrOnDirectory(args['input'],args['output'])
+    tsv_ocrOnDirectory('/project/arcc-students/OilWellProject2023.Summer/Master/non_blank','/project/arcc-students/OilWellProject2023.Summer/generalOCR_MasterNonBlanks')
 
     return
 
