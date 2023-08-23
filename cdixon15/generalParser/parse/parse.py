@@ -56,44 +56,65 @@ def combine_lines(list1, list2):
     combined_list.extend([left, top, width, height, conf, text])
     combined_list = list(map(str, combined_list))
     return combined_list
-    
-def realign_text(text_rows, left_dist_def, top_dist_def):
-    # Create a copy of the line so we can iterate without changing the iterable
-    realigned = text_rows.copy()
-    # Keep track of whether or not any changes are made
-    has_been_modified = False 
-    # Compare every row to every other row only once. Do not compare a row to
-    # itself
-    for index, item1 in enumerate(text_rows):
-        for item2 in text_rows[index+1:]:
-#########################################  Mesaverde Example  #########################################
-            if re.search('Mesaverde', item1[11]):
-                left_dist = left_dist_def+60
-            else:
-                left_dist = left_dist_def
-            
-            top_dist = top_dist_def
-            # Check if the two rows being compared are 'close'
-            if top_is_close(item1, item2, top_dist) and left_is_close(item1, item2, left_dist):
-                # The realigned list is going to become shorter, so we need to
-                # ensure that the item we are comparing is still in the
-                # realigned list.
-                try:
-                    # Get the positions of the two lines of text that will be
-                    # combined
-                    first_pos = realigned.index(item1)
-                    second_pos = realigned.index(item2)
-                except ValueError:
-                    # One of the lines was removed
-                    continue
 
-                # Ensure that we combine the text in the right order
-                if int(item1[6]) < int(item2[6]):
-                    realigned[first_pos] = combine_lines(item1, item2)
-                    realigned.pop(second_pos)
+def clean_dataframe(df):
+    # Remove all text entries that are set as 'Nan'
+    tmp_df = df.dropna(subset=['text'])
+    # Filter out the rows of every text entry that contains spaces and/or '|'
+    filtered = tmp_df[tmp_df.text.str.fullmatch('\ *\|?')].index
+    # Drop the rows that were just filtered out
+    new_df = tmp_df.drop(filtered)
+    return new_df
+
+def realign_text(orig_df, left_dist_def, top_dist_def):
+    # Clean the dataframe
+    df = clean_dataframe(orig_df)
+    # Convert the dataframe to a list
+    ref_list = df.values.tolist()
+    realigned = ref_list.copy()
+    # Keep track of whether or not any changes were made in the latest 
+    # iteration. Initialize to True so the while-loop will start.
+    modified = True
+    # Continue realigning the text until no changes are made
+    while modified:
+        # Reset to false for beginning of loop
+        modified = False
+        # Compare every row to every other row only once. Do not compare a row 
+        # to itself
+        for index, item1 in enumerate(ref_list):
+            for item2 in ref_list[index+1:]:
+#########################################  Mesaverde Example  #########################################
+                if re.search('Mesaverde', item1[11]):
+                    left_dist = left_dist_def+60
                 else:
-                    realigned[second_pos] = combine_lines(item1, item2)
-                    realigned.pop(first_pos)
-                    
-                has_been_modified = True # Changes have been made
-    return has_been_modified, realigned
+                    left_dist = left_dist_def
+
+                top_dist = top_dist_def
+                # Check if the two rows being compared are 'close'
+                if top_is_close(item1, item2, top_dist) and left_is_close(item1, item2, left_dist):
+                    # The realigned list is going to become shorter, so we need to
+                    # ensure that the item we are comparing is still in the
+                    # realigned list.
+                    try:
+                        modified = True # Changes have been made
+                        # Get the positions of the two lines of text that will be
+                        # combined
+                        first_pos = realigned.index(item1)
+                        second_pos = realigned.index(item2)
+                    except ValueError:
+                        # At least one of the lines were removed
+                        continue
+
+                    # Ensure that we combine the text in the right order
+                    if int(item1[6]) < int(item2[6]):
+                        realigned[first_pos] = combine_lines(item1, item2)
+                        realigned.pop(second_pos)
+                    else:
+                        realigned[second_pos] = combine_lines(item1, item2)
+                        realigned.pop(first_pos)
+        ref_list = realigned.copy()
+                
+    return pd.DataFrame(data=realigned, columns=[
+        'level', 'page_num', 'block_num', 'par_num', 'line_num', 'word_num',
+        'left', 'top', 'width', 'height', 'conf', 'text'
+    ])
