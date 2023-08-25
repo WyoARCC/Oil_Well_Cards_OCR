@@ -12,6 +12,11 @@ def parseTSV(tsv):
     #this is the default value newrow. each value is just '**NOTFOUND**'
     parsed=tb.defaultRow
 
+    #We insert the filenum here
+    FileNum=tsv.rsplit( ".", 1 )[ 0 ]
+    FileNum=FileNum.split('/')[-1]  
+    parsed['FileNum']=FileNum
+
     '''
     Call some parser functions and edit values in 'parsed' accordingly
     '''
@@ -48,7 +53,7 @@ def main():
         print(parseDirectory(args["input"],args['recursive']))
 
     else:
-        parseTSV(args["input"])
+        print(parseTSV(args["input"]))
    
     
     

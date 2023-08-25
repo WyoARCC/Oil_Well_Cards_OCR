@@ -1,3 +1,6 @@
+
+
+
 def left_is_close(list1, list2, dist):
     # Make the list elements numerical so numerical comparisons will be easier
     list1 = list(map(transform_element, list1))
@@ -118,3 +121,235 @@ def realign_text(orig_df, left_dist_def, top_dist_def):
         'level', 'page_num', 'block_num', 'par_num', 'line_num', 'word_num',
         'left', 'top', 'width', 'height', 'conf', 'text'
     ])
+
+#TODO
+#Finds the lines of data frame that contain any term in searchTerms
+def searchdf(df,searchTerms):
+    rows=df.loc[df['column_name'].isin(searchTerms)]
+    return rows
+
+#TODO
+#loads search terms from a txt file
+def loadSearchTerms(file):
+
+    return
+
+
+'''
+Decided that each field should be its own function so that we can flexible in whatever way is necessary for that field
+'''
+#TODO
+def findStatus(df):
+    return
+
+#TODO
+def findDocumentID(df):
+    return
+
+#TODO
+def findAPINum(df):
+    return
+
+#TODO
+def findWellName(df):
+    return
+
+#TODO
+def findOperator(df):
+    return
+
+#TODO
+def findLocation(df):
+    return
+
+#TODO
+def findTownship(df):
+    return
+
+#TODO
+def findRange(df):
+    return
+
+#TODO
+def findSection(df):
+    return
+
+#TODO
+def findNSFootage(df):
+    return
+
+#TODO
+def findEWFootage(df):
+    return
+
+#TODO
+def findQtrQtr(df):
+    return
+
+#TODO
+def findLocationFootage(df):
+    return
+
+#TODO
+def findElevation(df):
+    return
+
+#TODO
+def findSpudDate(df):
+    return
+
+#TODO
+def findCompDate(df):
+    return
+
+#TODO
+def findTDFormation(df):
+    return
+
+#TODO
+def findTotalDepth(df):
+    return
+
+#TODO
+def findPlugBackDepth(df):
+    return
+
+#TODO
+def findCasing(df):
+    return
+
+#TODO
+def findInitProd(df):
+    return
+
+#TODO
+def findCardNumber(df):
+    return
+
+#TODO
+def findStatus(df):
+    return
+
+#TODO
+def findReeissued(df):
+    return
+
+#TODO
+def findDSTS_Cores(df):
+    return
+
+#TODO
+#Finds the lines of data frame that contain any term in searchTerms
+def searchdf(df,searchTerms):
+    rows=df.loc[df['column_name'].isin(searchTerms)]
+    return rows
+
+#TODO
+#loads search terms from a txt file
+def loadSearchTerms(file):
+
+    return
+
+
+'''
+Decided that each field should be its own function so that we can flexible in whatever way is necessary for that field
+'''
+#TODO
+def findStatus(df):
+    return
+
+#TODO
+def findDocumentID(df):
+    return
+
+#TODO
+def findAPINum(df):
+    return
+
+#TODO
+def findWellName(df):
+    return
+
+#TODO
+def findOperator(df):
+    return
+
+#TODO
+def findLocation(df):
+    return
+
+#TODO
+def findTownship(df):
+    return
+
+#TODO
+def findRange(df):
+    return
+
+#TODO
+def findSection(df):
+    return
+
+#TODO
+def findNSFootage(df):
+    return
+
+#TODO
+def findEWFootage(df):
+    return
+
+#TODO
+def findQtrQtr(df):
+    return
+
+#TODO
+def findLocationFootage(df):
+    return
+
+#TODO
+def findElevation(df):
+    return
+
+#TODO
+def findSpudDate(df):
+    return
+
+#TODO
+def findCompDate(df):
+    return
+
+#TODO
+def findTDFormation(df):
+    return
+
+#TODO
+def findTotalDepth(df):
+    return
+
+#TODO
+def findPlugBackDepth(df):
+    return
+
+#TODO
+def findCasing(df):
+    return
+
+#TODO
+def findInitProd(df):
+    return
+
+#TODO
+def findCardNumber(df):
+    return
+
+#TODO
+def findStatus(df):
+    return
+
+#TODO
+def findReeissued(df):
+    return
+
+#TODO
+def findDSTS_Cores(df):
+    return
