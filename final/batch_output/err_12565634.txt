@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 430, in <module>
+    main()
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 400, in main
+    csv['text'] = re.sub('[,.\/\\?<>{}"`!@#$%^*+=\[\]]', "", csv['text'])
+  File "/project/arcc-students/csloan5/environments/GPU_env/lib/python3.9/re.py", line 210, in sub
+    return _compile(pattern, flags).sub(repl, string, count)
+TypeError: expected string or bytes-like object

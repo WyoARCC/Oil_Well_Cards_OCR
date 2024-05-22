@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 430, in <module>
+    main()
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 414, in main
+    parsed = setLocation(parsed)
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 325, in setLocation
+    parsed['Location'] = parsed['Location'] + ' QtrQtr: ' + parsed['QtrQtr']
+TypeError: can only concatenate str (not "re.Match") to str

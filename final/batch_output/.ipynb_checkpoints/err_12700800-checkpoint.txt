@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 476, in <module>
+    main()
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 391, in main
+    argParser = argparse.ArgumentParser()
+NameError: name 'argparse' is not defined

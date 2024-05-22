@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 442, in <module>
+    main()
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 437, in main
+    sort_csv_by_column(args["output"], 0, True)
+NameError: name 'sort_csv_by_column' is not defined

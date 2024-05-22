@@ -1,21 +1,10 @@
-""" TODO:
-    - Fix Well name parsing expression
-    - Fix Init prod and Prod Zone parsing expressions
-    - Try changing the parse_lines() function to use if-elif-else rather than 
-        multiple if statements.
-    - Add parsing expression for Reissue, Formations, Casings
-    - Somehow figure out how to extract DSTs and core info
-    - Find out how to get accuracy level of parsed details.
-    - Manually separate type1 cards from the rest ??
-    """
-    
-
 import csv
 import os
 import re
 import pandas as pd
 import argparse
 from utils.csv_utils import sort_csv_by_column
+
 # Index positions for each element in a row
 # level= 0
 # pagenum = 1
@@ -84,11 +73,6 @@ def transform_element(item):
 
 
 def combine_lines(list1, list2):
-    # First convert all of the numerical strings in the list to either ints
-    # or floats, and leave the text as a string.
-#     list1 = list(map(transform_element, list1))
-#     list2 = list(map(transform_element, list2))
-
     # Calculate the new coordinate information for combined text
     left = min(list1[6], list2[6])
     top = min(list1[7], list2[7])
@@ -106,7 +90,7 @@ def combine_lines(list1, list2):
     # Change the elements of the new list to all strings again, and return
     combined_list = list1[:6].copy()
     combined_list.extend([left, top, width, height, conf, text])
-#     combined_list = list(map(str, combined_list))
+
     return combined_list
     
 def clean_dataframe(df):
@@ -138,20 +122,15 @@ def realign_text(orig_df, left_dist_def, top_dist_def):
         for index, item1 in enumerate(ref_list):
             for item2 in ref_list[index+1:]:
                 # Searching for special entires
-                if re.search('Mesaverde', item1[11]):
+                if re.search('well.class:?', item1[11]):
                     left_dist = left_dist_def + 60
-                elif re.search('Hilliard', item1[11]):
-                    left_dist = left_dist_def + 80
-                elif re.search('Carlile', item1[11]):
-                    left_dist = left_dist_def+90
-                elif re.search('Frontier', item1[11]):
-                    left_dist = left_dist_def+100
-                elif re.search('OPR:?', item1[11]):
-                    left_dist = left_dist_def + 60
-                elif re.search('WELL.CLASS:?', item1[11]):
-                    left_dist = left_dist_def + 60
-                elif re.search('(WELL|Well).?(#|No)?:?\ ?.*', item1[11]):
-                    left_dist = left_dist_def + 80
+                elif re.search('well.?(#|no)?:?\ ?.*', item1[11], re.IGNORECASE):
+                    if not re.search('(wells.*|.*ask\ us.*|well.class.*|elev\ ?chgd.*|rocky.mount)', item1[11], re.IGNORECASE):
+                        left_dist = left_dist_def + 80
+                elif re.search('(OPR|OPERATOR):?\ ?.*', item1[11], re.IGNORECASE):
+                    left_dist = left_dist_def + 100
+                elif re.search('CSG:?\ ?', item1[11], re.IGNORECASE):
+                    left_dist = left_dist_def + 70
                 else:
                     left_dist = left_dist_def
 
@@ -189,83 +168,96 @@ def parse_lines(df, parsed):
     for line in df.itertuples(index=False):
         text = line[11]
         # Well Name / Number
-        if re.search('(WELL|Well).?(#|No)?:?\ ?.*', text):
-            if not re.search('(Wells.*|.*Ask\ Us.*|WELL.CLASS.*|ELEV\ ?CHGD.*)', text):
-                    parsed['WellName'] += re.split('(WELL|Well).?(#|No)?[:;]?\ ?', text)[-1]
+        if re.search('well.?(#|no)?:?\ ?.*', text, re.IGNORECASE):
+            if not re.search('(wells.*|.*ask\ us.*|well.class.*|elev\ ?chgd.*|rocky.mount)', text, re.IGNORECASE):
+                text = re.sub('[=~!@#$%^&*\(\)\[\]\{\}\\\/;]', '', text) # remove any symbols
+                parsed['WellName'] += re.split('well.?(#|no)?[:;]?\ ?', text, re.IGNORECASE)[-1]
             
         # Township and range
-        if re.search('(TWP|Twp)\.?\ ?[0-9]{1,2}n\-[0-9]{1,3}w?', text):
-            uncut = re.split('(TWP|Twp)\.?\ ?', text)[-1]
-            parsed['Township'] = re.split('-[0-9]{1,3}w?', uncut)[0]
-            parsed['Range'] = re.split('[0-9]{1,2}n\-', uncut)[-1]
+        if re.search('twp\.?\ ?[0-9A-Z]{1,2}n[\-\ ][0-9A-Z]{1,3}w?', text, re.IGNORECASE):
+            parsed['Township'] = re.search('twp\.?\ ?[0-9A-Z]{1,2}n', text, re.IGNORECASE).group(0)
+            parsed['Range'] = re.sub(parsed['Township'], '', text)
+            parsed['Range'] = parsed['Range'].replace('-', '')
             
         # Section
-        if re.search('Section\.?\ ?[0-9]{1,2}', text):
-            parsed['Section'] = re.split('Section\.?\ ?', text)[-1]
+        if re.search('(section|sec)\.?\ ?[0-9]{1,2}', text, re.IGNORECASE):
+            if parsed['Section'] == '':  
+                parsed['Section'] = re.search('(section|sec)\.?\ ?[0-9]{1,2}', text, re.IGNORECASE).group(0);
             
         # Quarter-Quarter info
-        if re.search('(c|c\/2)?\ ?(((n|e|s|w)\/2)|(ne|nw|se|sw)\ ?){2,3}.*', text):
-            parsed['QtrQtr'] = re.split('(c\ ?|c\/2\ ?)?(((n|e|s|w)\/2)|(ne|nw|se|sw)){2,3}', text)[0]
+        if re.search('(c|c\/2)?\ ?(((n|e|s|w)\/2)|(ne|nw|se|sw)\ ?){2,3}.*', text, re.IGNORECASE):
+             parsed['QtrQtr'] = re.search('(c|c\/2)?\ ?(((n|e|s|w)\/2)|(ne|nw|se|sw)\ ?){2,3}', text, re.IGNORECASE).group(0)
             
         # NS SW Footage
-        if re.search('\(?[0-9]{1,4}\ ?(n\/s|fnl)\ ?[0-9]{1,4}\ ?(e\/w|fwl)\)?', text):
-            parsed['NSFootage'] = re.search('\(?[0-9]{1,4}\ ?(n\/s|fnl)\ ?', text).group(0)
-            parsed['EWFootage'] = re.split('\(?[0-9]{1,4}\ ?(n\/s|fnl)\ ?', text)[-1]
+        if re.search('(\(?[0-9]{1,4}\ ?(n\/s|f[ns][l1i]|s\/n)\ ?)[0-9]{1,4}\ ?(e\/w|f[we][l1i]|w\/e)\)?', text):
+            if parsed['NSFootage'] == '' and parsed['EWFootage'] == '':
+                parsed['NSFootage'] = re.search('\(?[0-9]{1,4}\ ?(n\/s|f[ns][l1i]|s\/n)\ ?', text).group()
+                parsed['EWFootage'] = re.split('\(?[0-9]{1,4}\ ?(n\/s|f[ns][l1i]|s\/n)\ ?', text)[-1]
         
         # Operator
-        if re.search('OPR:?\ ?.*', text):
-            parsed['Operator'] = re.split('OPR:?\ ?', text)[-1]
+        if re.search('(opr|operator):?\ ?.*', text, re.IGNORECASE):
+            if parsed['Operator'] == '':
+                if re.search("well", text, re.IGNORECASE):
+                    oprtxt = re.split('well', text, re.IGNORECASE)[0]
+                else:
+                    oprtxt = text
+                parsed['Operator'] = re.split('(opr|operator):?\ ?', oprtxt, re.IGNORECASE)[-1]
             
         # Spud Date
-        if re.search('(SPUD|Spud):?\ ?[0-9]{1,2}(\/|-)[0-9]{1,2}(\/|-)[0-9]{2,4}', text):
-            parsed['SpudDate'] = re.split('(SPUD|Spud):?\ ?', text)[-1]
+        if re.search('spud:?\ ?[0-9]{1,2}(\/|-)[0-9]{1,2}(\/|-)[0-9]{2,4}', text, re.IGNORECASE):
+            parsed['SpudDate'] = re.split('spud:?\ ?', text, re.IGNORECASE)[-1]
             
         # Completion Date
-        if re.search('(COMP|Comp|COMPL|Compl):?\ ?[0-9]{1,2}(\/|-)[0-9]{1,2}(\/|-)[0-9]{2,4}', text):
-            parsed['CompDate'] = re.split('(COMPL|Compl|COMP|Comp):?\ ?', text)[-1]
+        if re.search('(comp|compl):?\ ?[0-9]{1,2}(\/|-)[0-9]{1,2}(\/|-)[0-9]{2,4}', text, re.IGNORECASE):
+            parsed['CompDate'] = re.split('(comp|compl):?\ ?', text, re.IGNORECASE)[-1]
             
         # Elevation
-        if re.search('(ELEV|Elev|EL|El):?\ ?[0-9]{4}.*', text):
-            parsed['Elevation'] = re.split('(ELEV|Elev|El):?\ ?', text)[-1]
+        if re.search('(elev|el):?\ ?[0-9]+.*', text, re.IGNORECASE):
+            parsed['Elevation'] = re.split('(elev|el):?\ ?', text, re.IGNORECASE)[-1]
             
         # API number
-        if re.search('(API|IDN)?:?\ ?49-?[0-9]{3}-?[0-9]{5}', text):
-            parsed['APINum'] = re.search('49-?[0-9]{3}-?[0-9]{5}', text).group(0)
+        api = re.search('(API|IDN)?:?\ ?49[-\ ]{0,2}[0-9]{3}[-\ ]{0,2}[0-9]{5}', text, re.IGNORECASE)
+        if api:
+            parsed['APINum'] = api.group(0)
             
         # Total Depth
-        if re.search('(TD:?\ ?[0-9]{3,4}|[0-9]{3,4}\ ?TD)', text):
-            parsed['TotalDepth'] = ''.join(re.split('(?!TD)', text))
+        TD = re.search('(TD:?\ ?[0-9]+|[0-9]+\ ?TD)', text)
+        if TD and not re.search('PBTD', TD.group(0), re.IGNORECASE):
+            parsed['TotalDepth'] = TD.group(0)
             
         # Plug Back
-        if re.search('PB:?\ ?[0-9]{3,4}', text):
-            parsed['PlugBackDepth'] = re.split('PB:?\ ?', text)[-1]
+        PB = re.search('(PB|PBTD):?\ ?[0-9]+', text, re.IGNORECASE)
+        if PB:
+            parsed['PlugBackDepth'] = PB.group(0)
         
         # Initial Production
-        if re.search('(Init\ ?Prod:?\ ?|Initial\ ?Production:?\ ?|IP:)\ ?.*',text):
-            if re.search('(Prod\ ?Zone|Production\ ?Zone|Prod):?\ ?.*',text):
-                parsed['InitProd'] = re.split('(Init\ ?Prod|Initial\ ?Production|IP):?\ ?', text)[-1]
+        if re.search('(init[\ .]*?prod:?[\ .]*|initial[\ .]*production:?\ ?|ip:)\ ?.*',text, re.IGNORECASE):
+            if re.search('(prod\ ?zone|production\ ?zone|prod):?\ ?.*',text, re.IGNORECASE):
+                parsed['InitProd'] += text + ' '
             
         # Production Zone
-        if re.search('(Prod\ ?Zone|Production\ ?Zone|Prod):?\ ?.*',text):
-            if not re.search('(Init\ ?Prod:?\ ?|Initial\ ?Production:?\ ?|IP:)\ ?.*',text):
-                parsed['ProdZone'] = re.split('(Prod\ ?Zone|Production\ ?Zone|Prod):?\ ?', text)[-1]
+        if re.search('(prod[\ .]*?zone|production[\ .]*?zone|prod):?\ ?.*',text, re.IGNORECASE):
+            if not re.search('(init[\ .]*?prod:?\ ?|initial[\ .]*?production:?\ ?|ip:)\ ?.*',text, re.IGNORECASE):
+                parsed['ProdZone'] += text + ' '
             
         # Card Number
-        if re.search('WY?[0-9]{2}-?[0-9]{6}',text):
-            if not re.search('.*Replaces.*', text):
+        if re.search('(wy|w)?[0-9]{1,2}-?[0-9]{6}',text, re.IGNORECASE):
+            if not re.search('.*Replaces.*', text, re.IGNORECASE):
                 parsed['CardNumber'] = text
         
         # Well Status/Class
-        if re.search('WELL\ CLASS:?\ ?', text):
-            parsed['WellStatus'] = re.split('WELL\ CLASS:?\ ?', text)[-1]
+        if re.search('well\ class:?\ ?', text, re.IGNORECASE):
+            parsed['WellStatus'] = re.split('well\ class:?\ ?', text, re.IGNORECASE)[-1]
         
         # Reissued information
-        if re.search('(REISSUED|Reissued)', text):
-            parsed['Reeissued'] = text
+        if re.search('(RE.*ISSUE|Replace|RE.ENTRY)', text, re.IGNORECASE):
+            parsed['Reissued'] += ' ' + text
+            
+        if re.search('CSG:?\ ?', text, re.IGNORECASE):
+            parsed['Casing'] = text
             
     return parsed
-            
-
+    
 def setLocation(parsed):
         # Make sure to separate the township, range, and section from the pool
         # and county
@@ -273,22 +265,35 @@ def setLocation(parsed):
             parsed['Location'] = ', ' + parsed['Location']
         # Set township, range and section
         if parsed['Section']:
-            parsed['Location'] = ' sec. ' + parsed['Section'] + parsed['Location']
+            parsed['Location'] = ' ' + parsed['Section'] + parsed['Location']
         if parsed['Range']:
             parsed['Location'] = ' ' + parsed['Range'] + parsed['Location']
         if parsed['Township']:
             parsed['Location'] = parsed['Township'] + parsed['Location']
+        if parsed['QtrQtr']:
+            parsed['Location'] = parsed['Location'] + ' QtrQtr: ' + parsed['QtrQtr']
+        
+        # Remove any double spaces
+        parsed['Location'] = parsed['Location'].replace('  ', ' ')
         
         return parsed
-
+    
 def setLocationFootage(parsed):
         if parsed['NSFootage']:
             parsed['LocationFootage'] += parsed['NSFootage']
         if parsed['EWFootage']:
             parsed['LocationFootage'] += ' ' + parsed['EWFootage']
         
+        # Remove any double spaces
+        parsed['LocationFootage'] = parsed['LocationFootage'].replace('  ', ' ')
+        
         return parsed
-    
+            
+def inside_block(line, left, right, top, bottom):
+    if line[6] < left or line[6] > right or line[7] < top or line[7] > bottom:
+        return False
+    else:
+        return True    
 def main():
     # Parse input and output directory options
     argParser = argparse.ArgumentParser()
@@ -305,10 +310,10 @@ def main():
         return
 
     # Create the .csv file
-    output_csv = pd.DataFrame(columns=['DocumentID','CardTypeID','OCRStatus','APINum','WellName',
+    output_csv = pd.DataFrame(columns=['DocumentID','APINum','WellName',
         'Operator','Location','Township','Range','Section','NSFootage','EWFootage','QtrQtr',
         'LocationFootage','Elevation','SpudDate','CompDate','TDFormation','TotalDepth',
-        'PlugBackDepth','Casing','InitProd','ProdZone','CardNumber','WellStatus','Reeissued',
+        'PlugBackDepth','Casing','InitProd','ProdZone','CardNumber','WellStatus','Reissued',
         'DSTS_Cores'])
     
     filenames = load_csv_filenames(args["input"])
@@ -316,13 +321,13 @@ def main():
     exception_count = 0
     print("Exceptions:")
     for index, file in enumerate(filenames):
-        CardDetails = {'DocumentID':os.path.basename(file),'CardTypeID':'1','OCRStatus':'Done',\
+        CardDetails = {'DocumentID':os.path.basename(file),\
         'APINum':'','WellName':'','Operator':'','Location':'',\
         'Township':'','Range':'','Section':'','NSFootage':'',\
         'EWFootage':'','QtrQtr':'','LocationFootage':'','Elevation':'',\
         'SpudDate':'','CompDate':'','TDFormation':'','TotalDepth':'',\
         'PlugBackDepth':'','Casing':'','InitProd':'','ProdZone':'',\
-        'CardNumber':'','WellStatus':'','Reeissued':'','DSTS_Cores':''}
+        'CardNumber':'','WellStatus':'','Reissued':'','DSTS_Cores':''}
         
         # Check that we are working on the correct files
         if not file.endswith('.csv'):
@@ -330,22 +335,47 @@ def main():
             
         # Read in the CSV file
         try:
-            csv = pd.read_csv(file, on_bad_lines='skip')
+            csvfile = pd.read_csv(file, on_bad_lines='skip')
         except Exception as e:
             print(f"File number: {index}, Exception: {e}, file: {file}")
             exception_count +=1
             continue
     
         # Change the text column in the csv to be all strings.
-        csv.dropna()
-        csv['text'] = csv['text'].apply(str)
+        csvfile.dropna()
+        csvfile['text'] = csvfile['text'].apply(str)
         
         #Code to remove all the "nan"s that show up in the output
-        mask = csv['text'] == 'nan'
-        csv = csv[~mask]
+        mask = csvfile['text'] == 'nan'
+        csvfile = csvfile[~mask]
+        
+        csvfile['text'] = csvfile['text'].replace("['~`!=\_%*@\^$]", "", regex=True)
+        csvfile['text'] = csvfile['text'].replace(";", ":", regex=True)
+        
+        Formations = ""
+        DSTs_and_Cores = ""
+        # Grab DSTS and Cores Text section before realigning.
+        for line in csvfile.itertuples(index=False):
+            # If it is inside the DST block
+            if inside_block(line, 300, 680, 190, 700):
+                # Make sure we don't go to far down
+                if re.search("([cC]ontr):?", line[11]):
+                    continue
+
+                if DSTs_and_Cores == "":
+                    DSTs_and_Cores = line[11]
+                else:
+                    DSTs_and_Cores += ' ' + line[11]
+
+            # Else if it is inside the TOPs formations block
+            elif inside_block(line, 0, 280, 190, 540):
+                if Formations == "":
+                    Formations = line[11]
+                else:
+                    Formations += ' ' + line[11]
         
         # Realign the text
-        realigned = realign_text(csv, left_dist_def=30, top_dist_def=20)
+        realigned = realign_text(csvfile, left_dist_def=30, top_dist_def=20)
         realigned.dropna()
         # Find any matching text lines
         parsed = parse_lines(realigned, CardDetails)
@@ -353,10 +383,17 @@ def main():
         parsed = setLocation(parsed)
         parsed = setLocationFootage(parsed)
         
-        # Remove any occurance of nan
-        for key in parsed.keys():
-            parsed[key] = parsed[key].replace(" nan ", "")
-            parsed[key] = parsed[key].replace("&", "8")
+        # Replace any occurence of & in these names with 8
+        parsed["WellName"] = parsed["WellName"].replace("&", "8")
+        parsed["Operator"] = parsed["Operator"].replace("&", "8")
+        
+        # Clean up DST and Core info
+        DSTs_and_Cores = DSTs_and_Cores.replace("[\n\t\r]", "")
+        parsed["DSTS_Cores"] = DSTs_and_Cores.replace("  ", " ")
+        
+        # Add Formation Tops Info
+        parsed["TDFormation"] = Formations.replace("  ", " ")
+        
         
         # Append parsed card information to spreadsheet
         df_parsed = pd.DataFrame([parsed])
@@ -364,8 +401,8 @@ def main():
 
     # Output the csv file
     output_csv.to_csv(args["output"], index=False)
-    
     sort_csv_by_column(args["output"], 0, True)
+    
     print("Done parsing cards")
     print(f"Number of exceptions thrown while parsing: {exception_count}")
     return

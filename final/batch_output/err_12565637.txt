@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 385, in main
+    csv = pd.read_csv(file, on_bad_lines='skip')
+  File "/project/arcc-students/csloan5/environments/GPU_env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 912, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/project/arcc-students/csloan5/environments/GPU_env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 577, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/project/arcc-students/csloan5/environments/GPU_env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 1407, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "/project/arcc-students/csloan5/environments/GPU_env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 1679, in _make_engine
+    return mapping[engine](f, **self.options)
+  File "/project/arcc-students/csloan5/environments/GPU_env/lib/python3.9/site-packages/pandas/io/parsers/c_parser_wrapper.py", line 93, in __init__
+    self._reader = parsers.TextReader(src, **kwds)
+  File "pandas/_libs/parsers.pyx", line 555, in pandas._libs.parsers.TextReader.__cinit__
+pandas.errors.EmptyDataError: No columns to parse from file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 430, in <module>
+    main()
+  File "/pfs/tc1/project/arcc-students/OilWellProject2023.Summer/code/GeneralParser.py", line 387, in main
+    print(f"File number: {index}, Exception: {e}, file: {file}")
+NameError: name 'index' is not defined

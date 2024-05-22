@@ -1,0 +1,5 @@
+Exceptions:
+File number: 4804, Exception: No columns to parse from file, file: /pfs/tc1/project/arcc-students/OilWellProject2023.Summer/ConvertedCSVFiles/Box14/151-0452.pdf_page_2.pdf.csv
+File number: 7329, Exception: No columns to parse from file, file: /pfs/tc1/project/arcc-students/OilWellProject2023.Summer/ConvertedCSVFiles/Box14/.ipynb_checkpoints/151-0452.pdf_page_2.pdf-checkpoint.csv
+Done parsing cards
+Number of exceptions thrown while parsing: 2
